@@ -180,6 +180,7 @@ strcmp:
 ; ---------------- STRINGS ----------------
 
 bootmsg db "TinyOS 1.0 JAM",13,10,0
+bootmsg db "TinyOS comes with ABSOLUTELY NO WARRANTY, to the extent permitted by applicable law."
 prompt db "os> ",0
 
 unknown db "Unknown command",13,10,0
