@@ -119,7 +119,7 @@ draw:
     cmp di, 64000
     jne draw
 
-wait:
+wait_key:
     mov ah, 0
     int 0x16
 
