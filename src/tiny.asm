@@ -220,8 +220,7 @@ strcmp:
 ; ---------------- STRINGS ----------------
 
 welcome db "TinyOS v1.0",13,10
-        db "TinyOS comes with ABSOLUTELY NO WARRANTY, to the extent permitted by applicable law.",13,10
-        db "Type help for commands",13,10,13,10,0
+    db "Type help for commands - have fun!",13,10,13,10,0
 
 prompt db "user@tinyos $ ",0
 
