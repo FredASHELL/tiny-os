@@ -2,93 +2,82 @@ org 0x7C00
 
 jmp start
 
-buffer times 64 db 0
-
-; ---------------- START ----------------
+buffer times 32 db 0
 
 start:
-    mov si, bootmsg
+    mov si, welcome
     call print_string
 
-main:
+shell:
     mov si, prompt
     call print_string
 
     mov di, buffer
     call read_line
 
-    ; HELP
+    ; help
     mov si, buffer
     mov di, cmd_help
     call strcmp
     cmp al, 1
-    je help
+    je do_help
 
-    ; HELLO
+    ; hello
     mov si, buffer
     mov di, cmd_hello
     call strcmp
     cmp al, 1
-    je hello
+    je do_hello
 
-    ; CLEAR SCREEN
+    ; clear
     mov si, buffer
     mov di, cmd_clear
     call strcmp
     cmp al, 1
-    je clear
+    je do_clear
 
-    ; INFO
-    mov si, buffer
-    mov di, cmd_info
-    call strcmp
-    cmp al, 1
-    je info
-
-    ; GAME
+    ; game
     mov si, buffer
     mov di, cmd_game
     call strcmp
     cmp al, 1
-    je game
+    je do_game
 
-    ; UNKNOWN
+    ; gfx
+    mov si, buffer
+    mov di, cmd_gfx
+    call strcmp
+    cmp al, 1
+    je do_gfx
+
     mov si, unknown
     call print_string
-    jmp main
+    jmp shell
 
 ; ---------------- COMMANDS ----------------
 
-help:
+do_help:
     mov si, help_text
     call print_string
-    jmp main
+    jmp shell
 
-hello:
+do_hello:
     mov si, hello_text
     call print_string
-    jmp main
+    jmp shell
 
-clear:
+do_clear:
     mov ax, 0x0003
     int 0x10
-    jmp main
+    jmp shell
 
-info:
-    mov si, info_text
-    call print_string
-    jmp main
-
-game:
-    mov si, game_text
+do_game:
+    mov si, game_intro
     call print_string
 
     mov ah, 0
     int 0x16
     mov bl, al
-
-    mov si, result_text
-    call print_string
 
     mov ah, 0x0E
     mov al, bl
@@ -99,20 +88,62 @@ game:
     mov al, 10
     int 0x10
 
-    jmp main
+    cmp bl, '5'
+    je win
 
-; ---------------- FUNCTIONS ----------------
+lose:
+    mov si, lose_text
+    call print_string
+    jmp shell
+
+win:
+    mov si, win_text
+    call print_string
+    jmp shell
+
+do_gfx:
+    ; VGA mode 13h (320x200 256 colors)
+    mov ax, 0x0013
+    int 0x10
+
+    mov ax, 0xA000
+    mov es, ax
+
+    xor di, di
+    xor dl, dl
+
+draw:
+    mov al, dl
+    stosb
+    inc dl
+    cmp di, 64000
+    jne draw
+
+wait:
+    mov ah, 0
+    int 0x16
+
+    mov ax, 0x0003
+    int 0x10
+
+    jmp shell
+
+; ---------------- PRINT STRING ----------------
 
 print_string:
     mov ah, 0x0E
-.loop:
+
+.next:
     lodsb
     cmp al, 0
     je .done
     int 0x10
-    jmp .loop
+    jmp .next
+
 .done:
     ret
+
+; ---------------- READ LINE ----------------
 
 read_line:
 .read:
@@ -137,8 +168,8 @@ read_line:
 
     dec di
 
-    mov al, 8
     mov ah, 0x0E
+    mov al, 8
     int 0x10
 
     mov al, ' '
@@ -153,50 +184,60 @@ read_line:
     mov al, 0
     stosb
 
+    mov ah, 0x0E
     mov al, 13
     int 0x10
     mov al, 10
     int 0x10
+
     ret
+
+; ---------------- STRING COMPARE ----------------
 
 strcmp:
 .loop:
     mov al, [si]
     mov bl, [di]
+
     cmp al, bl
     jne .no
+
     cmp al, 0
     je .yes
+
     inc si
     inc di
     jmp .loop
+
 .yes:
     mov al, 1
     ret
+
 .no:
     mov al, 0
     ret
 
 ; ---------------- STRINGS ----------------
 
-bootmsg db "TinyOS 1.0 JAM",13,10,0
-bootmsg db "TinyOS comes with ABSOLUTELY NO WARRANTY, to the extent permitted by applicable law."
-prompt db "os> ",0
+welcome db "TinyOS v1.0",13,10
+        db "Type help for commands",13,10,13,10,0
+
+prompt db "user@tinyos $ ",0
 
 unknown db "Unknown command",13,10,0
 
-help_text db "help hello clear info game",13,10,0
+help_text db "help hello clear game gfx",13,10,0
 hello_text db "Hello!",13,10,0
-info_text db "TinyOS single-file kernel",13,10,0
-game_text db "Press any key:",13,10,0
-result_text db "You pressed: ",0
+
+game_intro db "Guess 0-9: ",0
+win_text db "You win!",13,10,0
+lose_text db "Wrong!",13,10,0
 
 cmd_help db "help",0
 cmd_hello db "hello",0
 cmd_clear db "clear",0
-cmd_info db "info",0
 cmd_game db "game",0
+cmd_gfx db "gfx",0
 
-; ---------------- BOOT SIGNATURE ----------------
 times 510-($-$$) db 0
 dw 0xAA55
